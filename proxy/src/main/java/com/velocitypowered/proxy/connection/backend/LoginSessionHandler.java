@@ -143,7 +143,8 @@ public class LoginSessionHandler implements MinecraftSessionHandler {
 
   @Override
   public boolean handle(ServerLoginSuccessPacket packet) {
-    if (server.getConfiguration().getServerPlayerInfoForwardingMode(serverConn.getServerInfo().getName()) == PlayerInfoForwarding.MODERN && !informationForwarded) {
+    PlayerInfoForwarding forwardingMode = server.getConfiguration().getServerPlayerInfoForwardingMode(serverConn.getServerInfo().getName());
+    if (forwardingMode == PlayerInfoForwarding.MODERN && !informationForwarded) {
       resultFuture.complete(ConnectionRequestResults.forDisconnect(MODERN_IP_FORWARDING_FAILURE, serverConn.getServer()));
       serverConn.disconnect();
       return true;
