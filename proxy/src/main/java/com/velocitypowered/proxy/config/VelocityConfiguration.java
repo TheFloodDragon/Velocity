@@ -311,6 +311,11 @@ public class VelocityConfiguration implements ProxyConfig {
     return preventClientProxyConnections;
   }
 
+  // 适配性
+  public PlayerInfoForwarding getPlayerInfoForwardingMode() {
+    return getDefaultPlayerInfoForwardingMode();
+  }
+  
   public PlayerInfoForwarding getDefaultPlayerInfoForwardingMode() {
     return defaultPlayerInfoForwardingMode;
   }
