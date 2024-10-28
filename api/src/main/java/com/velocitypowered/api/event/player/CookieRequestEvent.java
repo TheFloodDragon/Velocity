@@ -125,7 +125,7 @@ public final class CookieRequestEvent implements ResultedEvent<CookieRequestEven
     }
 
     /**
-     * Sends this response to the request to the server
+     * Sends this response to the request to the server.
      *
      * @param data the data to send, null will mean missing data
      * @return a result with the data
