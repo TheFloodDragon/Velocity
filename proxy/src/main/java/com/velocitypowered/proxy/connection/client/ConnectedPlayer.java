@@ -78,6 +78,7 @@ import com.velocitypowered.proxy.protocol.packet.HeaderAndFooterPacket;
 import com.velocitypowered.proxy.protocol.packet.KeepAlivePacket;
 import com.velocitypowered.proxy.protocol.packet.PluginMessagePacket;
 import com.velocitypowered.proxy.protocol.packet.RemoveResourcePackPacket;
+import com.velocitypowered.proxy.protocol.packet.ServerboundCookieResponsePacket;
 import com.velocitypowered.proxy.protocol.packet.TransferPacket;
 import com.velocitypowered.proxy.protocol.packet.chat.ChatQueue;
 import com.velocitypowered.proxy.protocol.packet.chat.ChatType;
@@ -1071,6 +1072,8 @@ public class ConnectedPlayer implements MinecraftConnectionAssociation, Player, 
                 ? event.getOriginalKey() : event.getResult().getKey();
 
             connection.write(new ClientboundCookieRequestPacket(resultedKey));
+          } else if (event.getResult().shouldRespond()) {
+            this.ensureBackendConnection().write(new ServerboundCookieResponsePacket(event.getOriginalKey(), event.getResult().getData()));
           }
         }, connection.eventLoop());
   }
