@@ -11,6 +11,7 @@ import com.google.common.base.Preconditions;
 import com.velocitypowered.api.event.ResultedEvent;
 import com.velocitypowered.api.event.annotation.AwaitingEvent;
 import com.velocitypowered.api.proxy.Player;
+import java.util.Base64;
 import net.kyori.adventure.key.Key;
 
 /**
@@ -102,7 +103,13 @@ public final class CookieRequestEvent implements ResultedEvent<CookieRequestEven
 
     @Override
     public String toString() {
-      return status ? "forward to client" : "handled by proxy";
+      if (status) {
+        return "Forward to client";
+      }
+      if (respond) {
+        return "Respond with " + Base64.getEncoder().encodeToString(data);
+      }
+      return "Handled by proxy";
     }
 
     /**
