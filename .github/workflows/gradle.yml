@@ -26,3 +26,11 @@ jobs:
       with:
         name: Artifacts
         path: proxy/build/libs/
+    - name: Automatic Releases
+      uses: slord399/action-automatic-releases@v1.0.1
+      with:
+        repo_token: ${{ secrets.GITHUB_TOKEN }}
+        automatic_release_tag: latest
+        prerelease: false
+        title: "自动构建最新版本"
+        files: proxy/build/libs/*.*
