@@ -100,6 +100,7 @@ import com.velocitypowered.proxy.tablist.VelocityTabListLegacy;
 import com.velocitypowered.proxy.util.ClosestLocaleMatcher;
 import com.velocitypowered.proxy.util.DurationUtils;
 import com.velocitypowered.proxy.util.TranslatableMapper;
+import com.velocitypowered.proxy.util.collect.CappedSet;
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.Unpooled;
 import java.net.InetSocketAddress;
@@ -145,6 +146,7 @@ import org.jetbrains.annotations.NotNull;
 public class ConnectedPlayer implements MinecraftConnectionAssociation, Player, KeyIdentifiable,
     VelocityInboundConnection {
 
+  public static final int MAX_CLIENTSIDE_PLUGIN_CHANNELS = 1024;
   private static final PlainTextComponentSerializer PASS_THRU_TRANSLATE =
       PlainTextComponentSerializer.builder().flattener(TranslatableMapper.FLATTENER).build();
   static final PermissionProvider DEFAULT_PERMISSIONS = s -> PermissionFunction.ALWAYS_UNDEFINED;
@@ -174,6 +176,7 @@ public class ConnectedPlayer implements MinecraftConnectionAssociation, Player, 
   private final InternalTabList tabList;
   private final VelocityServer server;
   private ClientConnectionPhase connectionPhase;
+  private final Collection<ChannelIdentifier> clientsideChannels;
   private final CompletableFuture<Void> teardownFuture = new CompletableFuture<>();
   private @MonotonicNonNull List<String> serversToTry = null;
   private final ResourcePackHandler resourcePackHandler;
@@ -206,6 +209,7 @@ public class ConnectedPlayer implements MinecraftConnectionAssociation, Player, 
     this.permissionFunction = PermissionFunction.ALWAYS_UNDEFINED;
     this.connectionPhase = connection.getType().getInitialClientPhase();
     this.onlineMode = onlineMode;
+    this.clientsideChannels = CappedSet.create(MAX_CLIENTSIDE_PLUGIN_CHANNELS);
 
     if (connection.getProtocolVersion().noLessThan(ProtocolVersion.MINECRAFT_1_19_3)) {
       this.tabList = new VelocityTabList(this);
@@ -1104,8 +1108,14 @@ public class ConnectedPlayer implements MinecraftConnectionAssociation, Player, 
       throw new IllegalStateException("Can only send server links in CONFIGURATION or PLAY protocol");
     }
 
-    connection.write(new ClientboundServerLinksPacket(List.copyOf(links).stream()
-        .map(l -> new ClientboundServerLinksPacket.ServerLink(l, getProtocolVersion())).toList()));
+    connection.write(new ClientboundServerLinksPacket(links.stream()
+        .map(l -> new ClientboundServerLinksPacket.ServerLink(
+            l.getBuiltInType().map(Enum::ordinal).orElse(-1),
+            l.getCustomLabel()
+                .map(c -> new ComponentHolder(getProtocolVersion(), translateMessage(c)))
+                .orElse(null),
+            l.getUrl().toString()))
+        .toList()));
   }
 
   @Override
@@ -1311,6 +1321,7 @@ public class ConnectedPlayer implements MinecraftConnectionAssociation, Player, 
             connection.write(BundleDelimiterPacket.INSTANCE);
           }
           connection.write(StartUpdatePacket.INSTANCE);
+          connection.pendingConfigurationSwitch = true;
           connection.getChannel().pipeline().get(MinecraftEncoder.class).setState(StateRegistry.CONFIG);
           // Make sure we don't send any play packets to the player after update start
           connection.addPlayPacketQueueHandler();
@@ -1337,6 +1348,15 @@ public class ConnectedPlayer implements MinecraftConnectionAssociation, Player, 
    */
   public void setPhase(ClientConnectionPhase connectionPhase) {
     this.connectionPhase = connectionPhase;
+  }
+
+  /**
+   * Return all the plugin message channels that registered by client.
+   *
+   * @return the channels
+   */
+  public Collection<ChannelIdentifier> getClientsideChannels() {
+    return clientsideChannels;
   }
 
   @Override
